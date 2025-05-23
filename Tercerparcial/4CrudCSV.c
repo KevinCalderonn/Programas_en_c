@@ -9,6 +9,10 @@ void leer();
 void actualizar();
 void eliminar();
 void menu();
+void filtrarbusqueda();
+void registrocontador();
+void eliminardatos();
+void edadmaximayprom();
 int main(){
     FILE *f = fopen(ARCHIVO,"r");
     if (f == NULL)
@@ -30,12 +34,16 @@ void menu(){
     int opcion;
     do{
         printf("\n=== CRUD CON CSV EN C === \n");
-        printf( "1. Crear registro\n"
-                "2. Leer registro\n"
-                "3. Actualizar registro\n"
-                "4. Eliminar registro\n"
-                "5. Salir\n"
-                "Seleeccione una opción: ");
+        printf( "1. Crear registro.\n"
+                "2. Leer registro.\n"
+                "3. Actualizar registro.\n"
+                "4. Eliminar registro.\n"
+                "5. Filtrar Busqueda.\n"
+                "6. Contador de registros.\n"
+                "7. Eliminar todos los registros.\n"
+                "8. Edad Maxima.\n"
+                "9.- Salir.\n"
+                "Seleccione una opción: ");
                 scanf("%d",&opcion);
                 getchar();
         switch (opcion)
@@ -53,32 +61,62 @@ void menu(){
         eliminar();
         break;
         case 5:
+        filtrarbusqueda();
+        break;
+        case 6:
+        registrocontador();
+        break;
+        case 7:
+        eliminardatos();
+        break;
+        case 8:
+        edadmaximayprom();
+        break;
+        case 9:
         printf("Saliendo...\n");
         break;
         default:
         printf("Opción inválida.\n");
             break;
         }
-    } while (opcion != 5);
+    } while (opcion != 9);
 }
 void crear(){
-    FILE *f = fopen(ARCHIVO,"a");
+    int id_nuevo;
+    printf("Ingrese el ID: ");
+    scanf("%d",&id_nuevo);
+    getchar();
+    FILE *f = fopen(ARCHIVO,"r");
+    if (f == NULL){
+        perror("No se pudo abrir el archivo\n");
+    }
+    char linea[MAX],*token;
+    while (fgets(linea, MAX, f)) {
+        token = strtok(linea, ",");
+        if (token && strcmp(token, "id") == 0) continue;
+        if (atoi(token) == id_nuevo) {
+            printf("El id ya existe, no se puede agregar al registro.\n");
+            fclose(f);
+            return;
+        }
+    }
+    fclose(f);
+    
+    
+    f = fopen(ARCHIVO,"a");
     if (f == NULL){
         perror("No se pudo abrir el archivo\n");
         return;
     }
-    int id, edad;
+    int edad;
     char nombre[MAX];
-    printf("Ingrese ID: ");
-    scanf("%d", &id);
-    getchar();
     printf("Ingrese nombre: ");
     fgets(nombre,MAX,stdin);
     nombre[strcspn(nombre,"\n")] = '\0';
     printf("Ingrese edad: ");
     scanf("%d",&edad);
     getchar();
-    fprintf(f,"%d,%s,%d\n",id,nombre,edad);
+    fprintf(f,"%d,%s,%d\n",id_nuevo,nombre,edad);
     fclose(f);
     printf("Registro agregado con exito.\n");
 }
@@ -125,6 +163,7 @@ void actualizar(){
             printf("Ingrese nuevo nombre: ");
             fgets(nombre,MAX,stdin);
             nombre[strcspn(nombre,"\n")] = '\0';
+            printf("Ingrese nueva edad: ");
             scanf("%d",&edad);
             getchar();
             fprintf(tmp, "%d,%s,%d\n", id, nombre, edad);
@@ -188,4 +227,118 @@ void eliminar() {
                 printf("Registro eliminado.\n");}
             else
                 printf("ID no encontrado.\n");
+        }
+void filtrarbusqueda() {
+    int edad_minima, id_nuevo,edad,encontrado = 0;
+    printf("Introduzca la edad mínima para realizar la busqueda: ");
+    scanf("%d",&edad_minima);
+    getchar();
+    FILE *f = fopen(ARCHIVO, "r");
+    if (f == NULL) {
+        perror("No se pudo abrir el archivo\n");
+        return;
+    }
+    char linea[MAX],*token, nombre[MAX];
+    
+    while (fgets(linea,MAX,f))
+    {
+        linea[strcspn(linea, "\n")] = '\0';
+        token = strtok(linea, ",");
+        if (token && strcmp(token, "id") == 0) continue;
+        id_nuevo = atoi(token);
+
+        token = strtok(NULL, ",");
+        if (token != NULL)
+        {
+            strncpy(nombre,token,MAX);
+        }
+        token = strtok(NULL, ",");
+        if (token != NULL)
+        {
+            edad = atoi(token);
+        }
+        if(edad >= edad_minima)
+        {
+             printf("%d,%s,%d\n",id_nuevo,nombre,edad);
+             encontrado = 1;
+        }
+    }
+    if (encontrado == 0)
+    {
+        printf("No hay registros encontrados.\n");
+    }
+    fclose(f);
+    
+    
+}
+void registrocontador(){
+    FILE *f = fopen(ARCHIVO, "r");
+    if (f==NULL)
+    {
+        perror("No se ha encontrado el archivo");
+        return;
+    }    
+    int contador = 0;
+    char linea[MAX], *token;
+    while (fgets(linea,MAX,f))
+    {
+        linea[strcspn(linea, "\n")] = '\0';
+        token = strtok(linea, ",");
+        if (token && strcmp(token, "id") == 0) continue;        
+            contador++;
+    }
+    if (contador != 0)
+    {
+        printf("La cantidad de registros es: %d\n",contador);
+    }
+    else
+        printf("Registros no encontrados.\n");
+    fclose(f);
+}
+void eliminardatos(){
+    char confirmacion;
+    printf("¿Estás seguro de que deseas eliminar todos los registros? (s/n): ");
+    scanf(" %c", &confirmacion);
+    if (confirmacion != 's' && confirmacion != 'S') {
+    printf("Operación cancelada.\n");
+    return;
+}   
+    else {
+        FILE *f = fopen(ARCHIVO,"w");
+        if (f==NULL)
+        {
+            perror("No se ha encontrado el archivo");
+            return;
+        }
+        fprintf(f,"id,nombre,edad\n");
+        fclose(f);
+    }
+}
+void edadmaximayprom(){
+    FILE *f = fopen(ARCHIVO,"r");
+    char linea[MAX],*token;
+    int edad,edadmaxima=0;
+    if (f==NULL)
+    {
+        perror("No se ha encontrado el archivo");
+        return;
+    }
+    
+    while(fgets(linea,MAX,f)){
+        linea[strcspn(linea, "\n")] = '\0';
+        token = strtok(linea,",");
+        if (token && strcmp(token, "id") == 0) continue;
+            token = strtok(NULL, ",");
+            token = strtok(NULL,",");
+                if (token!=NULL)
+                {
+                    edad = atoi(token);
+                    if (edad > edadmaxima)
+                    {
+                        edadmaxima=edad;
+                    }
+                }
+            }
+              printf("La edad maxima es %d\n",edadmaxima);
+    fclose(f);
         }
